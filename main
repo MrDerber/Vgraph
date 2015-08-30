@@ -1,0 +1,79 @@
+# misis access_token=e4b7cb37346e4293aefc8011ff14b45df9fe0d9ad43935a7119d3847ce18ba5b4fb9f17162992894523a3
+# dacha access_token=8e3cef7340ee2d2e9a3b29233f0706835b6f8bf53622a10cf548b5d449ebf4549f94a3a7d5ee85b0b23f7
+# selyatino access_token=2d967f19562fe007f54d54c0a2deb0aa9d4fa8e84b3365ed5c077e0289d043063434068e053220fa61ce2
+# home access_token=61dc3df6d758685145c8578aef77c0e8952f0936e1ad90e089d0a7634114ee5a86260603118beca4da1c0
+
+from urllib.request import urlopen
+import json
+import codecs
+
+
+f = codecs.open('graph.gv', 'w', 'cp1251')
+f.write('graph G {\n')
+
+uid = '22279363'
+access_t = 'access_token=8e3cef7340ee2d2e9a3b29233f0706835b6f8bf53622a10cf548b5d449ebf4549f94a3a7d5ee85b0b23f7'
+my_friends = urlopen('https://api.vk.com/method/friends.get?user_id=%s' % (uid)).read().decode()
+my_friends = json.loads(my_friends)['response']
+my_name = 'Марченко Федор'
+#my_school = urlopen('https://api.vk.com/method/user.get?user_id=%s&fields=schools&%s' % (uid, access_t)).read().decode()
+#my_school = json.loads(my_school)['response']
+my_school = 'Школа №54'#my_school[0]["schools"][0]["name"]
+i = 0
+graphz = []
+
+my_school_friends = []
+school_mates = []
+
+for friend in my_friends:
+	my_friends[i] = str(friend)
+	i = i + 1
+
+my_friends = ','.join(my_friends)
+schools = urlopen('https://api.vk.com/method/users.get?uids=%s&fields=schools&%s' % (my_friends, access_t)).read().decode()
+schools = json.loads(schools)['response']
+len_schools = len(schools)
+print (len_schools)
+i = 0
+for i in range(len_schools):
+	try:
+		if schools[i]['schools'][0]['name'] == my_school:
+			graphz.append('    "%s" -- "%s";\n' %(my_name, schools[i]['last_name'] + ' ' + schools[i]['first_name']))
+			my_school_friends.append(schools[i]['uid'])
+			school_mates.append(schools[i]['last_name'] + ' ' + schools[i]['first_name'])
+	except:
+		continue
+#print (my_school_friends)
+i = 0
+len_my_school_friends = len(my_school_friends)
+for i in range(len_my_school_friends):
+	his_friends = urlopen('https://api.vk.com/method/friends.get?user_id=%s' % (my_school_friends[i])).read().decode()
+	his_friends = json.loads(his_friends)['response']
+	if len(his_friends) > 499:
+		continue
+	i1 = 0
+	for friend in his_friends:
+		his_friends[i1] = str(friend)
+		i1 = i1 + 1
+	his_friends = ','.join(his_friends)
+	schools = urlopen('https://api.vk.com/method/users.get?uids=%s&fields=schools&%s' % (his_friends, access_t)).read().decode()
+	schools = json.loads(schools)['response']
+	len_schools = len(schools)
+
+	for j in range(len_schools):
+
+		try:
+			if schools[j]['schools'][0]['name'] == my_school:
+				graphz.append('    "%s" -- "%s";\n' %(school_mates[i], schools[j]['last_name']+' '+schools[j]['first_name']))
+				school_mates.append(schools[j]['last_name'])
+		
+		except:
+			continue
+print (school_mates)
+print (graphz)
+
+for g in graphz:
+	f.write(g)
+
+f.write("}\n")
+f.close()
